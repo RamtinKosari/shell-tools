@@ -26,7 +26,7 @@ destination="$2"
 transfer_method="$3"
 
 # Initialize
-update_interval_seconds="0.5"
+update_interval_seconds="0.001"
 destination_type="file"
 source_type="file"
 transfer_exec=""
@@ -37,16 +37,28 @@ transfer() {
     dst_amount=$3
     transfer_exec="$1"
     echo ""
+    # Transfer
+    if [ "$transfer_exec" == "cp" ]; then
+        if [ "$source_type" == "dir" ]; then
+            $transfer_exec -r $source/* $destination &
+        else
+            $transfer_exec $source/* $destination &
+        fi
+    else
+        $transfer_exec $source $destination &
+    fi
+    # Status
     while true; do
         current_amount=$(ls $destination | wc -l)
         transfered_amount=$(( current_amount - dst_amount ))
-        echo -e "${PREVIOUS_LINE}${TAB}${LOG}Transfered : ${CYAN}$transfered_amount/$src_amount${RESET} Items"
+        # echo -e "${PREVIOUS_LINE}${TAB}${LOG}Transfered : ${CYAN}$transfered_amount/$src_amount${RESET} Items"
         if [ "$transfered_amount" == "$source_amount" ]; then
             break
         # elif [ "$transfered_amount" -gt "$source_amount" ]; then
         #     echo -e "${TAB}${FAILED}Transfered Items Amount is Greater than Source Items Amount"
         #     exit 0
         fi
+        echo $transfered_amount
         sleep $update_interval_seconds
     done
 }
