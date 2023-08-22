@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Definitions
-CYAN='\033[0m\033[38;2;0;230;230m'
 YELLOW='\033[1m\033[38;2;255;255;0m'
 GRAY='\033[1m\033[38;2;230;230;230m'
+CYAN='\033[0m\033[38;2;0;230;230m'
 GREEN='\033[1m\033[38;2;0;255;0m'
 RED='\033[1m\033[38;2;255;0;0m'
+PREVIOUS_LINE="\033[F\033[K"
 RESET='\033[0m '
 TAB='   '
 
@@ -21,31 +22,84 @@ source="$1"
 # Destination File or Directory
 destination="$2"
 
+# Transfer Method (Default is Copy)
+transfer_method="$3"
+
+# Initialize
+update_interval_seconds="0.5"
+destination_type="file"
+source_type="file"
+transfer_exec=""
+
+# Method to Transfer Files
+transfer() {
+    src_amount=$2
+    dst_amount=$3
+    transfer_exec="$1"
+    total=$(( $src_amount + $dst_amount ))
+    while true; do
+        transfered_amount=(( -))
+        echo -e "${PREVIOUS_LINE}${TAB}Total : $total"
+        sleep $update_interval_seconds
+    done
+}
+
 # Check Arguments
 if [ "$#" -lt 2 ]; then
     echo -e "${FAILED}Missing Arguments"
     echo -e "${TAB}${LOG}Usage : ${GRAY}rk_transfer_files ${CYAN}src dst${RESET}"
     exit 0
-elif [ "$#" -gt 2 ]; then
+elif [ "$#" -gt 3 ]; then
     echo -e "${FAILED}Extra Arguments"
     echo -e "${TAB}${LOG}Usage : ${CYAN}rk_transfer_files src dst${RESET}"
     exit 0
 else
-    # Initialize Transfer Files
-    source_type="file"
-    destination_type="file"
+    if [ "$#" -eq 3 ]; then
+        if  [ "$transfer_method" == "copy" ]; then
+            transfer_exec="cp"
+        elif [ "$transfer_method" == "move" ]; then
+            transfer_exec="mv"
+        else
+            echo -e "${FAILED}Invalid Argument #3"
+            echo -e "${TAB}${LOG}Avalible Options : ${CYAN}copy${RESET} - ${CYAN}move${RESET}"
+            exit 0
+        fi
+    else
+        transfer_method="copy"
+        transfer_exec="cp"
+    fi
     # Check Type of Source
     if [ -d "$source" ]; then
         echo -e "${LOG}Source Type : ${CYAN}Directory${RESET}"
         source_type="dir"
-    else
+    elif [ -e "$source" ]; then
         echo -e "${LOG}Source Type : ${CYAN}File${RESET}"
+    else
+        echo -e "${FAILED}Source File is Not Valid or Not Avalible"
+        exit 0
     fi
     # Check Type of Destination
     if [ -d "$destination" ]; then
         echo -e "${LOG}Destination Type : ${CYAN}Directory${RESET}"
         destination_type="dir"
-    else
+    elif [ -e "$destination" ]; then
         echo -e "${LOG}Destination Type : ${CYAN}File${RESET}"
+    else
+        echo -e "${FAILED}Destination Type is Not Valid or Not Avalible"
+        exit 0
     fi
+fi
+# Calculate Amount of Items to be Transfered
+source_items_amount=$(ls -1 $source | wc -l)
+destination_items_amount=$(ls $destination | wc -l)
+# Prepare to Transfer
+echo -e "${LOG}Preparing to Transfer ${CYAN}$source_items_amount${RESET}Items into ${CYAN}$destination${RESET}"
+if [ "$#" -eq 2 ]; then
+    echo -e "${TAB}${LOG}Transfer Method : ${CYAN}Copy${RESET}"
+    echo -e "${LOG}Copying ..."
+    transfer $transfer_exec $source_items_amount $destination_items_amount
+else
+    echo -e "${TAB}${LOG}Transfer Method : ${CYAN}Move${RESET}"
+    echo -e "${LOG}Moving ..."
+    transfer $transfer_exec $source_items_amount $destination_items_amount
 fi
