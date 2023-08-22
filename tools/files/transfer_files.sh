@@ -36,10 +36,17 @@ transfer() {
     src_amount=$2
     dst_amount=$3
     transfer_exec="$1"
-    total=$(( $src_amount + $dst_amount ))
+    echo ""
     while true; do
-        transfered_amount=(( -))
-        echo -e "${PREVIOUS_LINE}${TAB}Total : $total"
+        current_amount=$(ls $destination | wc -l)
+        transfered_amount=$(( current_amount - dst_amount ))
+        echo -e "${PREVIOUS_LINE}${TAB}${LOG}Transfered : ${CYAN}$transfered_amount/$src_amount${RESET} Items"
+        if [ "$transfered_amount" == "$source_amount" ]; then
+            break
+        # elif [ "$transfered_amount" -gt "$source_amount" ]; then
+        #     echo -e "${TAB}${FAILED}Transfered Items Amount is Greater than Source Items Amount"
+        #     exit 0
+        fi
         sleep $update_interval_seconds
     done
 }
@@ -90,16 +97,25 @@ else
     fi
 fi
 # Calculate Amount of Items to be Transfered
-source_items_amount=$(ls -1 $source | wc -l)
+source_items_amount=$(ls $source | wc -l)
 destination_items_amount=$(ls $destination | wc -l)
-# Prepare to Transfer
+# Prepare and Transfer
 echo -e "${LOG}Preparing to Transfer ${CYAN}$source_items_amount${RESET}Items into ${CYAN}$destination${RESET}"
 if [ "$#" -eq 2 ]; then
     echo -e "${TAB}${LOG}Transfer Method : ${CYAN}Copy${RESET}"
     echo -e "${LOG}Copying ..."
+    start_time=$(date +%s)
     transfer $transfer_exec $source_items_amount $destination_items_amount
+    end_time=$(date +%s)
+    elapsed_time=$((end_time - start_time))
+    echo -e "${SUCCESS}Copied All $source_items_amount"
 else
     echo -e "${TAB}${LOG}Transfer Method : ${CYAN}Move${RESET}"
     echo -e "${LOG}Moving ..."
+    start_time=$(date +%s)
     transfer $transfer_exec $source_items_amount $destination_items_amount
+    end_time=$(date +%s)
+    elapsed_time=$((end_time - start_time))
+    echo -e "${SUCCESS}Moved All $source_items_amount"
+
 fi
